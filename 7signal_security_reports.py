@@ -379,9 +379,18 @@ def _post(token, path, body):
         r.raise_for_status()
     raise RuntimeError(f"POST {path} failed")
 
-def iso(d, eod=False):
-    if eod: return datetime(d.year,d.month,d.day,23,59,59,tzinfo=timezone.utc).isoformat()
-    return datetime(d.year,d.month,d.day,0,0,0,tzinfo=timezone.utc).isoformat()
+def epoch_ms(d, eod=False):
+    dt = datetime(
+        d.year, d.month, d.day,
+        23 if eod else 0,
+        59 if eod else 0,
+        59 if eod else 0,
+        tzinfo=timezone.utc,
+    )
+    return int(dt.timestamp() * 1000)
+
+def get_time_range(sd, ed):
+    return epoch_ms(sd), epoch_ms(ed, eod=True)
 
 def fetch_agent(token, s, e, metrics, group_by=None, agg=None):
     if agg is None: agg=["AVG","MIN","MAX","COUNT"]
@@ -398,11 +407,21 @@ def fetch_sensor(token, s, e, metrics, group_by=None, agg=None):
 def fetch_sensor_ap(token, s, e, metrics, agg=None):
     return fetch_sensor(token,s,e,metrics,group_by="accessPoint",agg=agg)
 
+def metric_val(md, agg):
+    if agg in md:
+        return md[agg]
+    if isinstance(agg, str) and agg.lower() in md:
+        return md[agg.lower()]
+    if isinstance(agg, str) and agg.upper() in md:
+        return md[agg.upper()]
+    return None
+
 def sv(data, metric, agg="avg", default=None, prec=1):
     try:
         rows = data.get("data") or data.get("results") or []
         row = rows[0] if rows else data
-        val = (row.get(metric) or {}).get(agg)
+        md = row.get(metric) or {}
+        val = metric_val(md, agg)
         return round(val,prec) if val is not None else default
     except Exception:
         return default
@@ -416,7 +435,7 @@ def to_df(data, metrics):
             rec = {"group": row.get("groupValue") or row.get("label","—")}
             for m in metrics:
                 md = row.get(m) or {}
-                rec[f"{m}_avg"]=md.get("avg"); rec[f"{m}_min"]=md.get("min"); rec[f"{m}_max"]=md.get("max")
+                rec[f"{m}_avg"]=metric_val(md, "avg"); rec[f"{m}_min"]=metric_val(md, "min"); rec[f"{m}_max"]=metric_val(md, "max")
             recs.append(rec)
         return pd.DataFrame(recs)
     except Exception:
@@ -452,7 +471,7 @@ def build_excel(sheets, account, title, sd, ed):
 # ═══════════════════════════════════════════════════════════════
 
 def report_posture(token, account, sd, ed):
-    s, e = iso(sd), iso(ed, eod=True)
+    s, e = get_time_range(sd, ed)
     st.markdown(f'<div class="report-header"><h1>🔒 Wireless Security Posture Assessment</h1>'
                 f'<p>{account} &nbsp;|&nbsp; {sd} → {ed}</p></div>', unsafe_allow_html=True)
 
@@ -698,7 +717,7 @@ def report_posture(token, account, sd, ed):
 # ═══════════════════════════════════════════════════════════════
 
 def report_digest(token, account, sd, ed):
-    s, e = iso(sd), iso(ed, eod=True)
+    s, e = get_time_range(sd, ed)
     st.markdown(f'<div class="report-header"><h1>⚠️ Wireless Threat Indicator Digest</h1>'
                 f'<p>{account} &nbsp;|&nbsp; {sd} → {ed}</p></div>', unsafe_allow_html=True)
 
