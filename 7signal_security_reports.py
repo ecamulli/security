@@ -81,7 +81,7 @@ st.markdown(f"""
 # ─────────────────────────────────────────────────────────────
 # ── API helpers ──────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────
-BASE_URL = "https://mcp-v2.7signal.com"
+BASE_URL = "https://api-v2.7signal.com"
 
 @st.cache_data(ttl=300, show_spinner=False)
 def get_token(client_id: str, client_secret: str) -> str:
