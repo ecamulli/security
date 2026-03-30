@@ -85,14 +85,15 @@ BASE_URL = "https://api-v2.7signal.com"
 
 @st.cache_data(ttl=300, show_spinner=False)
 def get_token(client_id: str, client_secret: str) -> str:
-    """Exchange client credentials for a bearer token."""
+    """Exchange client credentials for a bearer token (OAuth2 form-encoded)."""
     url = f"{BASE_URL}/oauth2/token"
     payload = {
         "grant_type":    "client_credentials",
         "client_id":     client_id,
         "client_secret": client_secret,
     }
-    r = requests.post(url, json=payload, timeout=15)
+    # OAuth2 token endpoints require application/x-www-form-urlencoded, not JSON
+    r = requests.post(url, data=payload, timeout=15)
     r.raise_for_status()
     return r.json()["access_token"]
 
