@@ -86,7 +86,7 @@ BASE_URL = "https://api-v2.7signal.com"
 @st.cache_data(ttl=300, show_spinner=False)
 def get_token(client_id: str, client_secret: str) -> str:
     """Exchange client credentials for a bearer token."""
-    url = f"{BASE_URL}/oauth/token"
+    url = f"{BASE_URL}/oauth2/token"
     payload = {
         "grant_type":    "client_credentials",
         "client_id":     client_id,
